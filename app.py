@@ -14,7 +14,7 @@ app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 
 
-# HOME PAGE VIEW
+# HOME PAGE VIEW 123
 @app.route('/')
 def index():
     return render_template('index.html')
