@@ -1,6 +1,7 @@
 # IMPORTS
 import socket
 from flask import Flask, render_template
+from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
 # CONFIG
@@ -47,6 +48,19 @@ if __name__ == "__main__":
     free_socket.listen(5)
     free_port = free_socket.getsockname()[1]
     free_socket.close()
+
+    # avoid unauthorized user access certain pages
+    login_manager = LoginManager()
+    login_manager.login_view = 'users.login'
+    login_manager.init_app(app)
+
+    from models import User
+
+    # search database and return the user matched ID
+    @login_manager.user_loader
+    def load_user(id):
+        return User.query.get(int(id))
+
 
     # BLUEPRINTS
     # import blueprints

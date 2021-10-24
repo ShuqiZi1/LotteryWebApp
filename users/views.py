@@ -2,8 +2,9 @@
 import logging
 from functools import wraps
 
+from datetime import datetime
 from flask import Blueprint, render_template, flash, redirect, url_for, request
-from flask_login import current_user
+from flask_login import current_user, login_user, logout_user
 from werkzeug.security import check_password_hash
 
 from app import db
@@ -44,8 +45,9 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
-        # sends user to login page
+        # return user to login page redirect
         return redirect(url_for('users.login'))
+
     # if request method is GET or form not valid re-render signup page
     return render_template('register.html', form=form)
 
@@ -67,6 +69,17 @@ def login():
             flash('Please check your login details and try again')
 
             return render_template('login.html', form=form)
+
+        # register the user as logged in
+        login_user(user)
+
+        # last_logged_in is updated to current_logged_in
+        user.last_logged_in = user.current_logged_in
+        # current_logged_in is updated to current time
+        user.current_logged_in = datetime.now()
+        # update to database
+        db.session.add(user)
+        db.session.commit()
 
         # login successful
         return profile()
@@ -93,7 +106,7 @@ def account():
 # view logout
 @users_blueprint.route('/logout')
 def logout():
-
+    logout_user()
     return redirect(url_for('index'))
 
 
