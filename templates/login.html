@@ -30,6 +30,14 @@
                             {% endfor %}
                         </div>
                     </div>
+                    <div class="field">
+                        <div class="control">
+                            {{ form.pinkey(class="input", placeholder="Time-Based PIN") }}
+                            {% for error in form.pinkey.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    </div>
                     <div>
                         {{ form.recaptcha }}
                         {% for error in form.recaptcha.errors %}

@@ -10,6 +10,7 @@ from werkzeug.security import check_password_hash
 from app import db
 from models import User
 from users.forms import RegisterForm, LoginForm
+import pyotp
 
 # CONFIG
 users_blueprint = Blueprint('users', __name__, template_folder='templates')
@@ -55,6 +56,7 @@ def register():
 # view user login
 @users_blueprint.route('/login', methods=['GET', 'POST'])
 def login():
+
     # create login form object
     form = LoginForm()
 
@@ -70,19 +72,25 @@ def login():
 
             return render_template('login.html', form=form)
 
-        # register the user as logged in
-        login_user(user)
+        # verify the PIN submitted by the user
+        if pyotp.TOTP(user.pin_key).verify(form.pinkey.data):
+            # register the user as logged in
+            login_user(user)
 
-        # last_logged_in is updated to current_logged_in
-        user.last_logged_in = user.current_logged_in
-        # current_logged_in is updated to current time
-        user.current_logged_in = datetime.now()
-        # update to database
-        db.session.add(user)
-        db.session.commit()
+            # last_logged_in is updated to current_logged_in
+            user.last_logged_in = user.current_logged_in
+            # current_logged_in is updated to current time
+            user.current_logged_in = datetime.now()
+            # update to database
+            db.session.add(user)
+            db.session.commit()
 
-        # login successful
-        return profile()
+            # login successful
+            return profile()
+
+        #
+        else:
+            flash("You have supplied an invalid 2FA token!", "danger")
 
     return render_template('login.html',form=form)
 

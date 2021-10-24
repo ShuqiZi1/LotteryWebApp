@@ -70,12 +70,16 @@
                         {% endfor %}
                     </div>
                     <div>
-                        {# TODO: Add PIN generation setup instructions #}
+                        <p><b>Set up One Time Password generator</b></p>
+                        <ul>
+                            <li>Download <a href="https://authy.com/download/" target="_blank"><u>Authy</u></a> on your device.</li>
+                            <li>Select add new account.</li>
+                            <li>Enter your PIN key.</li>
+                            <li>Enter name for new account.</li>
+                            <li>Select token length of 6.</li>
+                        </ul>
                     </div>
-
                 </div>
-
-
                 <div>
                     {{ form.submit(class="button is-info is-centered") }}
                 </div>
