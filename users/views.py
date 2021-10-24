@@ -4,10 +4,11 @@ from functools import wraps
 
 from flask import Blueprint, render_template, flash, redirect, url_for, request
 from flask_login import current_user
+from werkzeug.security import check_password_hash
 
 from app import db
 from models import User
-from users.forms import RegisterForm
+from users.forms import RegisterForm, LoginForm
 
 # CONFIG
 users_blueprint = Blueprint('users', __name__, template_folder='templates')
@@ -50,9 +51,27 @@ def register():
 
 
 # view user login
-@users_blueprint.route('/login')
+@users_blueprint.route('/login', methods=['GET', 'POST'])
 def login():
-    return render_template('login.html')
+    # create login form object
+    form = LoginForm()
+
+    # if request method is POST or form is valid
+    if form.validate_on_submit():
+
+        user = User.query.filter_by(email=form.username.data).first()
+
+        # login unsuccessful
+        if not user or not check_password_hash(user.password, form.password.data):
+
+            flash('Please check your login details and try again')
+
+            return render_template('login.html', form=form)
+
+        # login successful
+        return profile()
+
+    return render_template('login.html',form=form)
 
 
 # view user profile
@@ -70,3 +89,11 @@ def account():
                            firstname="PLACEHOLDER FOR USER FIRSTNAME",
                            lastname="PLACEHOLDER FOR USER LASTNAME",
                            phone="PLACEHOLDER FOR USER PHONE")
+
+# view logout
+@users_blueprint.route('/logout')
+def logout():
+
+    return redirect(url_for('index'))
+
+
