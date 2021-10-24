@@ -3,7 +3,7 @@ import logging
 from functools import wraps
 
 from datetime import datetime
-from flask import Blueprint, render_template, flash, redirect, url_for, request
+from flask import Blueprint, render_template, flash, redirect, url_for, request, session
 from flask_login import current_user, login_user, logout_user
 from werkzeug.security import check_password_hash
 
@@ -56,6 +56,12 @@ def register():
 # view user login
 @users_blueprint.route('/login', methods=['GET', 'POST'])
 def login():
+    # if session attribute logins does not exist create attribute logins
+    if not session.get('logins'):
+        session['logins'] = 0
+    # if login attempts is 3 or more create an error message
+    elif session.get('logins') >= 3:
+        flash('Number of incorrect logins exceeded')
 
     # create login form object
     form = LoginForm()
@@ -63,17 +69,30 @@ def login():
     # if request method is POST or form is valid
     if form.validate_on_submit():
 
+        # increase login attempts by 1
+        session['logins'] += 1
+
         user = User.query.filter_by(email=form.username.data).first()
 
-        # login unsuccessful
+        # login failed
         if not user or not check_password_hash(user.password, form.password.data):
 
-            flash('Please check your login details and try again')
+            # if no match create appropriate error message based on login attempts
+            if session['logins'] == 3:
+                flash('Number of incorrect logins exceeded')
+            elif session['logins'] == 2:
+                flash('Please check your login details and try again. 1 login attempt remaining')
+            else:
+                flash('Please check your login details and try again. 2 login attempts remaining')
 
             return render_template('login.html', form=form)
 
         # verify the PIN submitted by the user
         if pyotp.TOTP(user.pin_key).verify(form.pinkey.data):
+
+            # if user is verified reset login attempts to 0
+            session['logins'] = 0
+
             # register the user as logged in
             login_user(user)
 
@@ -85,10 +104,10 @@ def login():
             db.session.add(user)
             db.session.commit()
 
-            # login successful
+            # login successful return profile page
             return profile()
 
-        #
+        # 2FA token error, login unsuccessful
         else:
             flash("You have supplied an invalid 2FA token!", "danger")
 
