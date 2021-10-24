@@ -9,6 +9,7 @@ from models import Draw, User
 # CONFIG
 lottery_blueprint = Blueprint('lottery', __name__, template_folder='templates')
 
+# temporary code to get the test user's key
 user = User.query.first()
 draw_key = user.draw_key
 

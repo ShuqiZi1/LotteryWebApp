@@ -7,11 +7,11 @@ from Crypto.Protocol.KDF import scrypt
 from Crypto.Random import get_random_bytes
 from cryptography.fernet import Fernet
 
-
+# data, encrypto key as parameter to encryption data
 def encrypt(data, draw_key):
     return Fernet(draw_key).encrypt(bytes(data, 'utf-8'))
 
-
+# decrypt data
 def decrypt(data, draw_key):
     return Fernet(draw_key).decrypt(data).decode("utf-8")
 
@@ -50,6 +50,7 @@ class User(db.Model, UserMixin):
         self.phone = phone
         self.password = generate_password_hash(password)
         self.pin_key = pin_key
+        # generate keys from user passwords
         self.draw_key = base64.urlsafe_b64encode(scrypt(password, str(get_random_bytes(32)), 32, N=2 ** 14, r=8, p=1))
         self.role = role
         self.registered_on = datetime.now()
@@ -70,12 +71,14 @@ class Draw(db.Model):
 
     def __init__(self, user_id, draw, win, round, draw_key):
         self.user_id = user_id
+        # encrypt draw with draw_key
         self.draw = encrypt(draw, draw_key)
         self.played = False
         self.match = False
         self.win = win
         self.round = round
 
+    # decrypt the draw with draw_key
     def view_draw(self, draw_key):
         self.draw = decrypt(self.draw, draw_key)
 
