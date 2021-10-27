@@ -7,9 +7,11 @@ from Crypto.Protocol.KDF import scrypt
 from Crypto.Random import get_random_bytes
 from cryptography.fernet import Fernet
 
-# data, encrypto key as parameter to encryption data
+
+# data, encrypt key as parameter to encryption data
 def encrypt(data, draw_key):
     return Fernet(draw_key).encrypt(bytes(data, 'utf-8'))
+
 
 # decrypt data
 def decrypt(data, draw_key):

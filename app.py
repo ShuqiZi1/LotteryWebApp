@@ -1,8 +1,10 @@
 # IMPORTS
+import logging
 import socket
-from flask import Flask, render_template, session
-from flask_login import LoginManager
+from flask import Flask, render_template, session, request
+from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
+from functools import wraps
 
 # CONFIG
 app = Flask(__name__)
@@ -17,31 +19,57 @@ app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 
 
+# FUNCTIONS
+def requires_roles(*roles):
+    def wrapper(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            if current_user.role not in roles:
+                logging.warning('SECURITY - Unauthorised access attempt [%s, %s, %s, %s]',
+                                current_user.id,
+                                current_user.username,
+                                current_user.role,
+                                request.remote_addr)
+                # Redirect the user to an unauthorised notice!
+                return render_template('403.html')
+            return f(*args, **kwargs)
+
+        return wrapped
+
+    return wrapper
+
+
 # HOME PAGE VIEW
 @app.route('/')
 def index():
     return render_template('index.html')
 
-#ERROR PAGE VIEWS
+
+# ERROR PAGE VIEWS
 @app.errorhandler(400)
 def bad_request(error):
-    return render_template('400.html'),400
+    return render_template('400.html'), 400
+
 
 @app.errorhandler(403)
 def page_forbidden(error):
-     return render_template('403.html'), 403
+    return render_template('403.html'), 403
+
 
 @app.errorhandler(404)
 def page_not_found(error):
-     return render_template('404.html'), 404
+    return render_template('404.html'), 404
+
 
 @app.errorhandler(500)
 def internal_server_error(error):
-     return render_template('500.html'), 500
+    return render_template('500.html'), 500
+
 
 @app.errorhandler(503)
 def service_unavailable(error):
-     return render_template('503.html'), 503
+    return render_template('503.html'), 503
+
 
 if __name__ == "__main__":
     my_host = "127.0.0.1"
@@ -57,6 +85,7 @@ if __name__ == "__main__":
     login_manager.init_app(app)
 
     from models import User
+
 
     # search database and return the user matched ID
     @login_manager.user_loader

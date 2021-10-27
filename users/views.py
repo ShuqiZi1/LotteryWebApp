@@ -104,14 +104,20 @@ def login():
             db.session.add(user)
             db.session.commit()
 
+            # direct to role appropriate page
+            if current_user.role == 'admin':
+                return redirect(url_for('admin.admin'))
+            else:
+                return redirect(url_for('users.profile'))
+
             # login successful return profile page
-            return profile()
+            # return profile()
 
         # 2FA token error, login unsuccessful
         else:
             flash("You have supplied an invalid 2FA token!", "danger")
 
-    return render_template('login.html',form=form)
+    return render_template('login.html', form=form)
 
 
 # view user profile
