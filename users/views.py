@@ -46,6 +46,9 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
+        # log for User register
+        logging.warning('SECURITY - User registration [%s, %s]', form.email.data, request.remote_addr)
+
         # return user to login page redirect
         return redirect(url_for('users.login'))
 
@@ -104,6 +107,10 @@ def login():
             db.session.add(user)
             db.session.commit()
 
+            # log for User log in
+            logging.warning('SECURITY - Log in [%s, %s, %s]', current_user.id, current_user.email,
+                            request.remote_addr)
+
             # direct to role appropriate page
             if current_user.role == 'admin':
                 return redirect(url_for('admin.admin'))
@@ -142,6 +149,9 @@ def account():
 @users_blueprint.route('/logout')
 @login_required
 def logout():
+    # log for log out
+    logging.warning('SECURITY - Log out [%s, %s, %s]', current_user.id, current_user.email, request.remote_addr)
+
     logout_user()
     return redirect(url_for('index'))
 
