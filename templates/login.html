@@ -40,12 +40,6 @@
                         </div>
                     </div>
                     <div>
-                        {{ form.recaptcha }}
-                        {% for error in form.recaptcha.errors %}
-                            {{ error }}
-                        {% endfor %}
-                    </div>
-                    <div>
                         {{ form.submit(class="button is-info is-centered") }}
                     </div>
                 </form>

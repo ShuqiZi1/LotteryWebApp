@@ -1,16 +1,15 @@
 # IMPORTS
 import logging
-from functools import wraps
+import pyotp
 
 from datetime import datetime
 from flask import Blueprint, render_template, flash, redirect, url_for, request, session
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.security import check_password_hash
 
-from app import db
+from app import db, requires_roles
 from models import User
 from users.forms import RegisterForm, LoginForm
-import pyotp
 
 # CONFIG
 users_blueprint = Blueprint('users', __name__, template_folder='templates')
@@ -88,6 +87,10 @@ def login():
             else:
                 flash('Please check your login details and try again. 2 login attempts remaining')
 
+            # log for invalid login attempts
+            logging.warning('SECURITY - Unauthorised login attempt [Anonymous user, %s, %s]', form.username.data,
+                            request.remote_addr)
+
             return render_template('login.html', form=form)
 
         # verify the PIN submitted by the user
@@ -130,6 +133,7 @@ def login():
 # view user profile
 @users_blueprint.route('/profile')
 @login_required
+@requires_roles('user')
 def profile():
     return render_template('profile.html', name="PLACEHOLDER FOR FIRSTNAME")
 
@@ -137,6 +141,7 @@ def profile():
 # view user account
 @users_blueprint.route('/account')
 @login_required
+@requires_roles('user', 'admin')
 def account():
     return render_template('account.html',
                            acc_no="PLACEHOLDER FOR USER ID",
@@ -145,14 +150,14 @@ def account():
                            lastname="PLACEHOLDER FOR USER LASTNAME",
                            phone="PLACEHOLDER FOR USER PHONE")
 
+
 # view logout
 @users_blueprint.route('/logout')
 @login_required
+@requires_roles('user', 'admin')
 def logout():
     # log for log out
     logging.warning('SECURITY - Log out [%s, %s, %s]', current_user.id, current_user.email, request.remote_addr)
 
     logout_user()
     return redirect(url_for('index'))
-
-

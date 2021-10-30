@@ -25,6 +25,7 @@ def lottery():
     return render_template('lottery.html')
 
 
+# add new draw
 @lottery_blueprint.route('/add_draw', methods=['POST'])
 @login_required
 @requires_roles('user')

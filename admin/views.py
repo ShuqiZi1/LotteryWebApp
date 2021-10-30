@@ -1,6 +1,6 @@
 # IMPORTS
 from flask import Blueprint, render_template, request, flash
-from flask_login import current_user
+from flask_login import current_user, login_required
 from app import db, requires_roles
 from models import User, Draw
 import copy
@@ -8,31 +8,28 @@ import copy
 # CONFIG
 admin_blueprint = Blueprint('admin', __name__, template_folder='templates')
 
-user = User.query.first()
-draw_key = user.draw_key
-
 
 # VIEWS
 # view admin homepage
 @admin_blueprint.route('/admin')
+@login_required
 @requires_roles('admin')
 def admin():
-    # return render_template('admin.html', name="PLACEHOLDER FOR FIRSTNAME")
     return render_template('admin.html', name=current_user.firstname)
 
 
 # view all registered users
 @admin_blueprint.route('/view_all_users', methods=['POST'])
+@login_required
 @requires_roles('admin')
 def view_all_users():
-    # return render_template('admin.html', name="PLACEHOLDER FOR FIRSTNAME",
-    #                       current_users=User.query.filter_by(role='user').all())
     return render_template('admin.html', name=current_user.firstname,
                            current_users=User.query.filter_by(role='user').all())
 
 
 # create a new winning draw
 @admin_blueprint.route('/create_winning_draw', methods=['POST'])
+@login_required
 @requires_roles('admin')
 def create_winning_draw():
     # get current winning draw
@@ -56,7 +53,8 @@ def create_winning_draw():
     submitted_draw.strip()
 
     # create a new draw object with the form data.
-    new_winning_draw = Draw(user_id=current_user.id, draw=submitted_draw, win=True, round=round, draw_key=draw_key)
+    new_winning_draw = Draw(user_id=current_user.id, draw=submitted_draw, win=True, round=round,
+                            draw_key=current_user.draw_key)
 
     # add the new winning draw to the database
     db.session.add(new_winning_draw)
@@ -69,6 +67,7 @@ def create_winning_draw():
 
 # view current winning draw
 @admin_blueprint.route('/view_winning_draw', methods=['POST'])
+@login_required
 @requires_roles('admin')
 def view_winning_draw():
     # get winning draw from DB
@@ -76,8 +75,10 @@ def view_winning_draw():
 
     # if a winning draw exists
     if current_winning_draw:
+        # creates a copy of current_winning_draw object which is independent of database.
         current_winning_draw_copy = copy.deepcopy(current_winning_draw)
-        current_winning_draw_copy.view_draw(draw_key)
+        # decrypt copy of current_winning_draw object.
+        current_winning_draw_copy.view_draw(current_user.draw_key)
 
         # re-render admin page with current winning draw and lottery round
         return render_template('admin.html', winning_draw=current_winning_draw_copy, name=current_user.firstname)
@@ -89,6 +90,7 @@ def view_winning_draw():
 
 # view lottery results and winners
 @admin_blueprint.route('/run_lottery', methods=['POST'])
+@login_required
 @requires_roles('admin')
 def run_lottery():
     # get current unplayed winning draw
@@ -96,6 +98,10 @@ def run_lottery():
 
     # if current unplayed winning draw exists
     if current_winning_draw:
+        # creates a copy of current_winning_draw object which is independent of database.
+        current_winning_draw_copy = copy.deepcopy(current_winning_draw)
+        # decrypt copy of current_winning_draw object.
+        current_winning_draw_copy.view_draw(current_user.draw_key)
 
         # get all unplayed user draws
         user_draws = Draw.query.filter_by(win=False, played=False).all()
@@ -103,6 +109,8 @@ def run_lottery():
 
         # if at least one unplayed user draw exists
         if user_draws:
+            # creates a list of copied user_draws objects which are independent of database.
+            user_draw_copies = list(map(lambda x: copy.deepcopy(x), user_draws))
 
             # update current winning draw as played
             current_winning_draw.played = True
@@ -110,15 +118,15 @@ def run_lottery():
             db.session.commit()
 
             # for each unplayed user draw
-            for draw in user_draws:
-
+            for draw in user_draw_copies:
                 # get the owning user (instance/object)
                 user = User.query.filter_by(id=draw.user_id).first()
+                draw.view_draw(user.draw_key)
 
                 # if user draw matches current unplayed winning draw
-                if draw.draw == current_winning_draw.draw:
+                if draw.draw == current_winning_draw_copy.draw:
                     # add details of winner to list of results
-                    results.append((current_winning_draw.round, draw.draw, draw.user_id, user.email))
+                    results.append((current_winning_draw_copy.round, draw.draw, draw.user_id, user.email))
 
                     # update draw as a winning draw (this will be used to highlight winning draws in the user's
                     # lottery page)
@@ -131,14 +139,14 @@ def run_lottery():
                 draw.round = current_winning_draw.round
 
                 # commit draw changes to DB
-                db.session.add(draw)
-                db.session.commit()
+                init_draw = Draw.query.filter_by(id=draw.id).first()
+                init_draw.update_draw(draw.draw, user.draw_key, draw.played, draw.match, draw.round)
 
             # if no winners
             if len(results) == 0:
                 flash("No winners.")
 
-            return render_template('admin.html', results=results, name="PLACEHOLDER FOR FIRSTNAME")
+            return render_template('admin.html', results=results, name=current_user.firstname)
 
         flash("No user draws entered.")
         return admin()
@@ -150,6 +158,7 @@ def run_lottery():
 
 # view last 10 log entries
 @admin_blueprint.route('/logs', methods=['POST'])
+@login_required
 @requires_roles('admin')
 def logs():
     with open("lottery.log", "r") as f:

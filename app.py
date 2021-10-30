@@ -5,22 +5,37 @@ from flask import Flask, render_template, session, request
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
+from flask_talisman import Talisman
+import ssl
+
+
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    # Legacy Python that doesn't verify HTTPS certificates by default
+    pass
+else:
+    # Handle target environment that doesn't support HTTPS verification
+    ssl._create_default_https_context = _create_unverified_https_context
+
 
 # LOGGING
 class SecurityFilter(logging.Filter):
     def filter(self, record):
         return "SECURITY" in record.getMessage()
 
-
-fh = logging.FileHandler('lottery.log', 'w')
+# create file handler to log security messages to file
+fh = logging.FileHandler('lottery.log', 'a')
 fh.setLevel(logging.WARNING)
 fh.addFilter(SecurityFilter())
 formatter = logging.Formatter('%(asctime)s : %(message)s', '%m/%d/%Y %I:%M:%S %p')
 fh.setFormatter(formatter)
 
+# add handlers to root logger
 logger = logging.getLogger('')
 logger.propagate = False
-logger.addHandler(fh)
+if not logger.handlers:
+    logger.addHandler(fh)
 
 
 # CONFIG
@@ -28,12 +43,26 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lottery.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'LongAndRandomSecretKey'
-app.config['RECAPTCHA_PUBLIC_KEY'] = "6LfFdRMcAAAAAEeOwLocqoG8LhRNZhE0TYF8MdMG"
-app.config['RECAPTCHA_PRIVATE_KEY'] = "6LfFdRMcAAAAAILSgmbrJcTLnkDV5fG-xwPzyoR4"
 app.config['SQLALCHEMY_ECHO'] = True
+
 
 # initialise database
 db = SQLAlchemy(app)
+
+
+# Security Headers
+csp = {
+    'default-src': [
+        '\'self\'',
+        'https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css'
+    ],
+    'script-src': [
+        '\'self\'',
+        '\'unsafe-inline\''
+    ]
+}
+
+talisman = Talisman(app, content_security_policy=csp)
 
 
 # FUNCTIONS
@@ -44,7 +73,7 @@ def requires_roles(*roles):
             if current_user.role not in roles:
                 logging.warning('SECURITY - Unauthorised access attempt [%s, %s, %s, %s]',
                                 current_user.id,
-                                current_user.username,
+                                current_user.email,
                                 current_user.role,
                                 request.remote_addr)
                 # Redirect the user to an unauthorised notice!
@@ -67,21 +96,17 @@ def index():
 def bad_request(error):
     return render_template('400.html'), 400
 
-
 @app.errorhandler(403)
 def page_forbidden(error):
     return render_template('403.html'), 403
-
 
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('404.html'), 404
 
-
 @app.errorhandler(500)
 def internal_server_error(error):
     return render_template('500.html'), 500
-
 
 @app.errorhandler(503)
 def service_unavailable(error):

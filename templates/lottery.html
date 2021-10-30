@@ -19,22 +19,22 @@
             <form method="POST" action="/add_draw">
                 <div class="columns is-multiline is-centered">
                     <div class="column is-one-sixth">
-                        <input class="input" type="number" name="no1" id="no1" placeholder="value 1">
+                        <input class="input" type="number" name="no1" id="no1" min="1" max="60" required placeholder="value 1">
                     </div>
                     <div class="column is-one-sixth">
-                        <input class="input" type="number" name="no2" id="no2" placeholder="value 2">
+                        <input class="input" type="number" name="no2" id="no2" min="1" max="60" placeholder="value 2">
                     </div>
                     <div class="column is-one-sixth">
-                        <input class="input" type="number" name="no3" id="no3" placeholder="value 3">
+                        <input class="input" type="number" name="no3" id="no3" min="1" max="60" placeholder="value 3">
                     </div>
                     <div class="column is-one-sixth">
-                        <input class="input" type="number" name="no4" id="no4" placeholder="value 4">
+                        <input class="input" type="number" name="no4" id="no4" min="1" max="60" placeholder="value 4">
                     </div>
                     <div class="column is-one-sixth">
-                        <input class="input" type="number" name="no5" id="no5" placeholder="value 5">
+                        <input class="input" type="number" name="no5" id="no5" min="1" max="60" placeholder="value 5">
                     </div>
                     <div class="column is-one-sixth">
-                        <input class="input" type="number" name="no6" id="no6" placeholder="value 6">
+                        <input class="input" type="number" name="no6" id="no6" min="1" max="60" placeholder="value 6">
                     </div>
                 </div>
                 <div class="field">
@@ -87,10 +87,11 @@
                                 <td>{{ draw.round }}</td>
                                 <td>{{ draw.draw }}</td>
                                 <td>{{ draw.played }}</td>
-                                {% if draw.win %}
-                                    <td style="background-color: yellow">{{ draw.win }}</td>
+                                {% if draw.match %}
+                                    <td bgcolor="yellow">{{ draw.match }}</td>
+{#                                    <td style="background-color:yellow;">{{ draw.match }}</td>#}
                                 {% else %}
-                                    <td>{{ draw.win }}</td>
+                                    <td>{{ draw.match }}</td>
                                 {% endif %}
                             </tr>
                         {% endfor %}
