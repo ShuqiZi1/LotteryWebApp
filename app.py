@@ -9,16 +9,6 @@ from flask_talisman import Talisman
 import ssl
 
 
-try:
-    _create_unverified_https_context = ssl._create_unverified_context
-except AttributeError:
-    # Legacy Python that doesn't verify HTTPS certificates by default
-    pass
-else:
-    # Handle target environment that doesn't support HTTPS verification
-    ssl._create_default_https_context = _create_unverified_https_context
-
-
 # LOGGING
 class SecurityFilter(logging.Filter):
     def filter(self, record):
@@ -49,7 +39,6 @@ app.config['SQLALCHEMY_ECHO'] = True
 # initialise database
 db = SQLAlchemy(app)
 
-
 # Security Headers
 csp = {
     'default-src': [
@@ -59,9 +48,8 @@ csp = {
     'script-src': [
         '\'self\'',
         '\'unsafe-inline\''
-    ]
+    ],
 }
-
 talisman = Talisman(app, content_security_policy=csp)
 
 
@@ -114,6 +102,7 @@ def service_unavailable(error):
 
 
 if __name__ == "__main__":
+
     my_host = "127.0.0.1"
     free_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     free_socket.bind((my_host, 0))
@@ -146,4 +135,4 @@ if __name__ == "__main__":
     app.register_blueprint(admin_blueprint)
     app.register_blueprint(lottery_blueprint)
 
-    app.run(host=my_host, port=free_port, debug=True)
+    app.run(host=my_host, port=free_port, debug=True, ssl_context=('cert.pem', 'key.pem'))
