@@ -135,7 +135,7 @@ def login():
 @login_required
 @requires_roles('user')
 def profile():
-    return render_template('profile.html', name="PLACEHOLDER FOR FIRSTNAME")
+    return render_template('profile.html', name=current_user.email)
 
 
 # view user account
